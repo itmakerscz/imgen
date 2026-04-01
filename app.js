@@ -1,27 +1,21 @@
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 
-// Konfigurace prostředí pro čisté Wasm/WebGPU
-env.allowLocalModels = false;
-env.backends.onnx.wasm.proxy = true; // Spustí Wasm v samostatném workeru (lepší stabilita)
-
-// --- 1. Oprava Témat ---
+// --- 1. Téma (Jednoduše) ---
 const themeToggle = document.getElementById('theme-toggle');
 const themeIcon = document.getElementById('theme-icon');
 
-function applyTheme() {
-    const isDark = localStorage.getItem('theme') === 'dark' || 
-                   (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.documentElement.classList.toggle('dark', isDark);
-    themeIcon.innerText = isDark ? '☀️' : '🌙';
-}
 themeToggle.addEventListener('click', () => {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     themeIcon.innerText = isDark ? '☀️' : '🌙';
 });
-applyTheme();
 
-// --- 2. Pure Wasm Agent (WebGPU Only) ---
+if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.classList.add('dark');
+    themeIcon.innerText = '☀️';
+}
+
+// --- 2. Agent (Stabilní) ---
 let agentPipe = null;
 
 async function runAgent() {
@@ -35,36 +29,31 @@ async function runAgent() {
 
     btn.disabled = true;
     resultBox.classList.add('hidden');
-    status.innerText = "⚡ Startuji Wasm Engine (WebGPU)...";
+    status.innerText = "⏳ Hledám GPU (WebGPU)...";
 
     try {
         if (!agentPipe) {
-            // Použijeme SmolLM2 - je 5x menší než Llama, projde přes limity bufferu
-            agentPipe = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', { 
-                device: 'webgpu',
-                dtype: 'q4', 
+            // Použijeme TinyLlama-q4 jako nejmenší stabilní jednotku
+            agentPipe = await pipeline('text-generation', 'onnx-community/TinyLlama-1.1B-Chat-v1.0-ONNX', { 
+                device: 'webgpu'
             });
         }
 
-        status.innerText = "🧠 Wasm Agent počítá...";
+        status.innerText = "🧠 Agent pracuje...";
         
         const output = await agentPipe(queryInput.value, { 
-            max_new_tokens: 64,
-            temperature: 0.5,
-            repetition_penalty: 1.2
+            max_new_tokens: 50,
+            temperature: 0.7
         });
 
-        const answer = output[0].generated_text;
-
-        status.innerText = "✨ Hotovo (Wasm)";
+        status.innerText = "✨ Hotovo";
         resultBox.classList.remove('hidden');
-        resSummary.innerText = answer;
-        document.getElementById('res-meta').innerText = `Runtime: Wasm32 | Accel: WebGPU | Model: SmolLM2-135M`;
+        resSummary.innerText = output[0].generated_text;
 
     } catch (err) {
-        console.error("Wasm/WebGPU Error:", err);
-        status.innerText = "❌ WebGPU Buffer Limit Error";
-        alert("Chyba 11094288: Vaše GPU nepovoluje dostatečně velký Wasm buffer. \n\nZkuste v Chrome zapnout: chrome://flags/#enable-unsafe-webgpu");
+        console.error("DEBUG ERROR:", err);
+        status.innerText = "❌ WebGPU Backend nenalezen";
+        alert("Chyba: Prohlížeč nevidí vaši grafickou kartu přes WebGPU.");
     } finally {
         btn.disabled = false;
     }
