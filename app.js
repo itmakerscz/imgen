@@ -1,30 +1,27 @@
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 
-// --- 1. Témata (Dark Mode) ---
+// --- 1. Oprava Témat (Dark/Light) ---
 const themeToggle = document.getElementById('theme-toggle');
+const themeIcon = document.getElementById('theme-icon');
 
 function applyTheme() {
     const savedTheme = localStorage.getItem('theme');
     const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme === 'dark' || (!savedTheme && systemDark);
 
-    if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
-        document.documentElement.classList.add('dark');
-        document.getElementById('theme-icon').innerText = '☀️';
-    } else {
-        document.documentElement.classList.remove('dark');
-        document.getElementById('theme-icon').innerText = '🌙';
-    }
+    document.documentElement.classList.toggle('dark', isDark);
+    themeIcon.innerText = isDark ? '☀️' : '🌙';
 }
 
 themeToggle.addEventListener('click', () => {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    document.getElementById('theme-icon').innerText = isDark ? '☀️' : '🌙';
+    themeIcon.innerText = isDark ? '☀️' : '🌙';
 });
 
 applyTheme();
 
-// --- 2. AI Agent s vynucenou kvantizací ---
+// --- 2. Stabilní AI Agent s CPU Fallbackem ---
 let agentPipe = null;
 
 async function runAgent() {
@@ -38,39 +35,53 @@ async function runAgent() {
 
     btn.disabled = true;
     resultBox.classList.add('hidden');
-    status.innerText = "⏳ Inicializace optimalizovaného Wasm (q4)...";
+    status.innerText = "⏳ Inicializace agenta...";
 
     try {
         if (!agentPipe) {
-            // Změna na ONNX specifický model s vynuceným dtype q4
-            agentPipe = await pipeline('text-generation', 'onnx-community/Llama-3.2-1B-Instruct-ONNX', { 
-                device: 'webgpu',
-                dtype: 'q4', // Tímto zmizí chyba dtype fp32 a Error 10589288
-            });
+            try {
+                status.innerText = "🌀 Zkouším WebGPU akceleraci...";
+                agentPipe = await pipeline('text-generation', 'onnx-community/Llama-3.2-1B-Instruct-ONNX', { 
+                    device: 'webgpu',
+                    dtype: 'q4' 
+                });
+            } catch (gpuError) {
+                console.warn("WebGPU selhalo (Error 11094288), přepínám na CPU...", gpuError);
+                status.innerText = "⚠️ GPU nedostupné, přepínám na CPU (bude to pomalejší)...";
+                
+                agentPipe = await pipeline('text-generation', 'onnx-community/Llama-3.2-1B-Instruct-ONNX', { 
+                    device: 'cpu', // Záchranný režim
+                    dtype: 'q4' 
+                });
+            }
         }
 
         status.innerText = "🧠 Agent přemýšlí...";
         
-        // Použití chat template pro Llama 3.2
         const messages = [
             { role: "system", content: "Jsi český speciální agent. Piš stručně." },
             { role: "user", content: queryInput.value }
         ];
         
         const output = await agentPipe(messages, { 
-            max_new_tokens: 128,
-            temperature: 0.7,
-            do_sample: true
+            max_new_tokens: 100,
+            temperature: 0.7
         });
+
+        const answer = output[0].generated_text[output[0].generated_text.length - 1].content;
 
         status.innerText = "✨ Hotovo";
         resultBox.classList.remove('hidden');
-        resSummary.innerText = output[0].generated_text[output[0].generated_text.length - 1].content;
+        resSummary.innerText = answer;
+        
+        // Info o tom, na čem to reálně běželo
+        const deviceUsed = agentPipe.model.device;
+        document.getElementById('res-meta').innerText = `Engine: Wasm | Device: ${deviceUsed.toUpperCase()} | Model: Llama-3.2-1B-q4`;
 
     } catch (err) {
-        console.error("Agent Error Details:", err);
-        status.innerText = "❌ Kritická chyba paměti GPU";
-        alert("Vaše GPU odmítlo model. Zkuste: \n1. Zavřít ostatní okna prohlížeče.\n2. Aktualizovat ovladače grafiky.\n3. Pokud jste v WSL, spusťte prohlížeč přímo ve Windows.");
+        console.error("Kritická chyba:", err);
+        status.innerText = "❌ Systémová chyba";
+        alert("Model se nepodařilo načíst ani na CPU. Zkuste obnovit stránku (F5).");
     } finally {
         btn.disabled = false;
     }
