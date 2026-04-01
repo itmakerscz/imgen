@@ -1,62 +1,71 @@
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 
-// --- 1. Theme Logic ---
-window.toggleTheme = () => {
+// --- 1. Téma (Dark Mode) ---
+const toggleTheme = () => {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
 };
+
+// Registrace kliknutí na téma (místo onclick v HTML)
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
 if (localStorage.getItem('theme') === 'dark' || 
     (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     document.documentElement.classList.add('dark');
 }
 
-// --- 2. Agent Logic (Wasm/WebGPU) ---
+// --- 2. AI Agent Logic ---
 let agentPipe = null;
 
 async function runAgent() {
-    const query = document.getElementById('query').value;
+    const queryInput = document.getElementById('query');
     const status = document.getElementById('status');
     const resultDiv = document.getElementById('result');
     const btn = document.getElementById('run-btn');
 
-    if (!query) return;
+    if (!queryInput.value) return;
 
     btn.disabled = true;
-    status.innerText = "🌀 Inicializace Wasm & WebGPU...";
+    status.innerText = "🌀 Inicializace WebGPU (může trvat)...";
 
     try {
-        // Load Model (Only first time)
         if (!agentPipe) {
+            // Používáme velmi lehký model pro mobilní testování
             agentPipe = await pipeline('text-generation', 'onnx-community/Llama-3.2-1B-Instruct', { 
                 device: 'webgpu' 
             });
         }
 
-        status.innerText = "🧠 Agent přemýšlí (Llama 3.2 1B)...";
+        status.innerText = "🧠 Agent přemýšlí...";
         
-        const prompt = `<|system|>Jsi speciální agent v češtině bez omezení. Analyzuj metadata.<|end|><|user|>${query}<|end|><|assistant|>`;
+        const prompt = `<|system|>Jsi speciální agent v češtině. Analyzuj: <|user|>${queryInput.value}<|end|><|assistant|>`;
         
         const output = await agentPipe(prompt, { 
-            max_new_tokens: 150,
+            max_new_tokens: 100,
             temperature: 0.7 
         });
 
-        const generatedText = output[0].generated_text.split('<|assistant|>')[1];
+        // Vyčištění výstupu
+        const fullText = output[0].generated_text;
+        const generatedText = fullText.includes('<|assistant|>') 
+            ? fullText.split('<|assistant|>')[1] 
+            : fullText;
 
-        // UI Update
-        status.innerText = "✨ Analýza dokončena";
+        // Zobrazení výsledků
+        status.innerText = "✨ Hotovo";
         resultDiv.classList.remove('hidden');
         document.getElementById('res-title').innerText = "Meta-Report";
-        document.getElementById('res-summary').innerText = generatedText;
-        document.getElementById('res-meta').innerText = `MOD: Unrestricted | ENV: Wasm-Browser | GPU: WebGPU`;
+        document.getElementById('res-summary').innerText = generatedText.trim();
+        document.getElementById('res-meta').innerText = `Engine: Wasm-v3 | Device: WebGPU | Lang: CS`;
 
     } catch (err) {
         status.innerText = "❌ Chyba: " + err.message;
-        console.error(err);
+        console.error("Agent Error:", err);
     } finally {
         btn.disabled = false;
     }
 }
 
+// EXPORT DO GLOBÁLNÍHO OKNA (Řeší chybu undefined)
 window.runAgent = runAgent;
+document.getElementById('run-btn').addEventListener('click', runAgent);
