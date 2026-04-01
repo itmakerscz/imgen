@@ -38,9 +38,13 @@ async function runAgent() {
     try {
         if (!agentPipe) {
             // Qwen2.5-0.5B je "vše v jednom" a funguje skvěle na WebGPU
-            agentPipe = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', { 
+            //agentPipe = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', { 
+            //    device: 'webgpu',
+            //    dtype: 'q4' // Důležité pro snížení paměti
+            //});
+            agentPipe = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', { 
                 device: 'webgpu',
-                dtype: 'q4' // Důležité pro snížení paměti
+                dtype: 'q4' 
             });
         }
 
