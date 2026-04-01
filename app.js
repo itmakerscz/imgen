@@ -35,7 +35,8 @@ async function runAgent() {
         if (!agentPipe) {
             // Použijeme TinyLlama-q4 jako nejmenší stabilní jednotku
             agentPipe = await pipeline('text-generation', 'onnx-community/TinyLlama-1.1B-Chat-v1.0-ONNX', { 
-                device: 'webgpu'
+                device: 'webgpu',
+                model: 'q4'
             });
         }
 
