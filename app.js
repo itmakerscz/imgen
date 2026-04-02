@@ -35,18 +35,19 @@ async function runAgent() {
             //});
             // Používáme Qwen2.5-0.5B - nejmenší stabilní model pro rok 2026
             generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
-                device: 'webgpu'//, // Využije grafiku tvého zařízení
-                //dtype: 'q4'       // Kvantizace na 4 bity (ušetří 75 % RAM)
+                device: 'webgpu', // Využije grafiku tvého zařízení
+                dtype: 'q4'       // Kvantizace na 4 bity (ušetří 75 % RAM)
             });
         }
 
         status.innerText = "🧠 Generuji odpověď (lokálně)...";
         
-        const prompt = `Jsi expert na Robotizujto.cz. Použij tyto informace: ${ROBOTIZUJTO_DATA}\n\nUživatel: ${input.value}\nOdpověď:`;
+        //const prompt = `Jsi expert na Robotizujto.cz. Použij tyto informace: ${ROBOTIZUJTO_DATA}\n\nUživatel: ${input.value}\nOdpověď:`;
+        const prompt = `Uživatel: ${input.value}\nOdpověď:`;
 
         const output = await generator(prompt, { 
-            max_new_tokens: 100,
-            temperature: 0.3,
+            max_new_tokens: 1000,
+            temperature: 0.7,
             repetition_penalty: 1.2
         });
 
