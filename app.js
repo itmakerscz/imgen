@@ -35,8 +35,8 @@ async function runAgent() {
             //});
             // Používáme Qwen2.5-0.5B - nejmenší stabilní model pro rok 2026
             generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
-                device: 'webgpu', // Využije grafiku tvého zařízení
-                dtype: 'q4'       // Kvantizace na 4 bity (ušetří 75 % RAM)
+                device: 'webgpu'//, // Využije grafiku tvého zařízení
+                //dtype: 'q4'       // Kvantizace na 4 bity (ušetří 75 % RAM)
             });
         }
 
