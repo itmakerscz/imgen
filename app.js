@@ -29,15 +29,15 @@ async function runAgent() {
     try {
         if (!generator) {
             // Používáme SmolLM2 - cca 130MB, ideální pro offline PWA
-            //generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
-            //    device: 'webgpu',
-            //    dtype: 'q4'
-            //});
-            // Používáme Qwen2.5-0.5B - nejmenší stabilní model pro rok 2026
-            generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
-                device: 'webgpu', // Využije grafiku tvého zařízení
-                dtype: 'q4'       // Kvantizace na 4 bity (ušetří 75 % RAM)
+            generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
+                device: 'webgpu'//,
+                //dtype: 'q4'
             });
+            // Používáme Qwen2.5-0.5B - nejmenší stabilní model pro rok 2026
+            //generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
+            //    device: 'webgpu', // Využije grafiku tvého zařízení
+            //    dtype: 'q4'       // Kvantizace na 4 bity (ušetří 75 % RAM)
+            //});
         }
 
         status.innerText = "🧠 Generuji odpověď (lokálně)...";
