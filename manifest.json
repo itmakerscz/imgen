@@ -1,15 +1,17 @@
 {
-  "name": "Czech Special Agent",
-  "short_name": "AI Agent",
-  "start_url": ".",
+  "name": "Robotizujto AI Agent",
+  "short_name": "Robotizujto",
+  "description": "Offline Wasm AI Agent pro automatizaci",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "theme_color": "#2563eb",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2593/2593635.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
