@@ -1,7 +1,6 @@
 {
-  "name": "Robotizujto AI Agent",
+  "name": "Robotizujto AI",
   "short_name": "Robotizujto",
-  "description": "Offline Wasm AI Agent pro automatizaci",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
@@ -10,8 +9,7 @@
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2593/2593635.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
