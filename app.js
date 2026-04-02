@@ -1,69 +1,61 @@
 import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
+import { ROBOTIZUJTO_DATA } from './data.js';
 
-// 1. Registrace Service Workera
+// 1. PWA Registrace a detekce offline stavu
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-        .then(() => console.log("SW: Aktivní"))
-        .catch(err => console.error("SW: Selhal", err));
+    navigator.serviceWorker.register('./sw.js').then(() => {
+        console.log("PWA: Aktivní");
+        if (!navigator.onLine) document.getElementById('pwa-status').innerText = "Offline Mode";
+    });
 }
 
-// --- 1. Oprava témat (Dark Mode) ---
-const themeToggle = document.getElementById('theme-toggle');
-const themeIcon = document.getElementById('theme-icon');
-
-const applyTheme = () => {
-    const isDark = localStorage.getItem('theme') === 'dark' || 
-                   (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.documentElement.classList.toggle('dark', isDark);
-    themeIcon.innerText = isDark ? '☀️' : '🌙';
-};
-
-themeToggle.addEventListener('click', () => {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    themeIcon.innerText = isDark ? '☀️' : '🌙';
-});
-
-applyTheme();
-
-// 2. Nastavení Transformers.js pro práci v PWA
+// 2. Konfigurace AI (Cache First)
 env.allowLocalModels = false;
-env.useBrowserCache = true; // Toto vynutí interní cache Transformers.js
+env.useBrowserCache = true; 
 
 let generator = null;
 
 async function runAgent() {
+    const input = document.getElementById('user-input');
     const status = document.getElementById('status');
     const responseText = document.getElementById('response-text');
-    const input = document.getElementById('user-input');
-    
+    const btn = document.getElementById('send-btn');
+
     if (!input.value.trim()) return;
 
+    btn.disabled = true;
+    status.innerText = "⏳ Načítám Wasm model z Cache...";
+
     try {
-        status.innerText = "⏳ Načítám Wasm model do cache...";
-        
         if (!generator) {
-            // Používáme SmolLM2 - vejde se do cache a je rychlý
+            // Používáme SmolLM2 - cca 130MB, ideální pro offline PWA
             generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
                 device: 'webgpu',
                 dtype: 'q4'
             });
         }
 
-        status.innerText = "🧠 Výpočet probíhá v prohlížeči (Wasm)...";
+        status.innerText = "🧠 Generuji odpověď (lokálně)...";
         
-        const output = await generator(input.value, { 
-            max_new_tokens: 64,
-            temperature: 0.5 
+        const prompt = `Jsi expert na Robotizujto.cz. Použij tyto informace: ${ROBOTIZUJTO_DATA}\n\nUživatel: ${input.value}\nOdpověď:`;
+
+        const output = await generator(prompt, { 
+            max_new_tokens: 100,
+            temperature: 0.3,
+            repetition_penalty: 1.2
         });
 
-        status.innerText = "✨ Hotovo";
+        const result = output[0].generated_text.split('Odpověď:')[1] || output[0].generated_text;
+
+        status.innerText = "✨ Výsledek z WebAssembly";
         document.getElementById('result-area').classList.remove('hidden');
-        responseText.innerText = output[0].generated_text;
+        responseText.innerText = result.trim();
 
     } catch (err) {
-        console.error("Wasm Error:", err);
-        status.innerText = "❌ Chyba WebGPU/Wasm";
+        console.error(err);
+        status.innerText = "❌ Chyba: WebGPU není dostupné";
+    } finally {
+        btn.disabled = false;
     }
 }
 
