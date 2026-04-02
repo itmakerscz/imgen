@@ -1,5 +1,14 @@
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 
+// Registrace Service Workera pro offline režim
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('PWA: Service Worker registrován'))
+            .catch(err => console.log('PWA: Chyba registrace', err));
+    });
+}
+
 // --- 1. Oprava témat (Dark Mode) ---
 const themeToggle = document.getElementById('theme-toggle');
 const themeIcon = document.getElementById('theme-icon');
