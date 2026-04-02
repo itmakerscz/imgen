@@ -1,12 +1,10 @@
-import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 
-// Registrace Service Workera pro offline režim
+// 1. Registrace Service Workera
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('PWA: Service Worker registrován'))
-            .catch(err => console.log('PWA: Chyba registrace', err));
-    });
+    navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log("SW: Aktivní"))
+        .catch(err => console.error("SW: Selhal", err));
 }
 
 // --- 1. Oprava témat (Dark Mode) ---
@@ -28,61 +26,45 @@ themeToggle.addEventListener('click', () => {
 
 applyTheme();
 
-// --- 2. Agent s modelem bez externích dat ---
-let agentPipe = null;
+// 2. Nastavení Transformers.js pro práci v PWA
+env.allowLocalModels = false;
+env.useBrowserCache = true; // Toto vynutí interní cache Transformers.js
+
+let generator = null;
 
 async function runAgent() {
-    const queryInput = document.getElementById('query');
     const status = document.getElementById('status');
-    const resultBox = document.getElementById('result-box');
-    const resSummary = document.getElementById('res-summary');
-    const btn = document.getElementById('run-btn');
-
-    if (!queryInput.value.trim()) return;
-
-    btn.disabled = true;
-    resultBox.classList.add('hidden');
-    status.innerText = "⏳ Načítám AI model (cca 350MB)...";
+    const responseText = document.getElementById('response-text');
+    const input = document.getElementById('user-input');
+    
+    if (!input.value.trim()) return;
 
     try {
-        if (!agentPipe) {
-            // Qwen2.5-0.5B je "vše v jednom" a funguje skvěle na WebGPU
-            //agentPipe = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', { 
-            //    device: 'webgpu',
-            //    dtype: 'q4' // Důležité pro snížení paměti
-            //});
-            agentPipe = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', { 
+        status.innerText = "⏳ Načítám Wasm model do cache...";
+        
+        if (!generator) {
+            // Používáme SmolLM2 - vejde se do cache a je rychlý
+            generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
                 device: 'webgpu',
-                dtype: 'q4' 
+                dtype: 'q4'
             });
         }
 
-        status.innerText = "🧠 Agent generuje odpověď...";
+        status.innerText = "🧠 Výpočet probíhá v prohlížeči (Wasm)...";
         
-        const messages = [
-            { role: "system", content: "Jsi užitečný český asistent." },
-            { role: "user", content: queryInput.value }
-        ];
-
-        const output = await agentPipe(messages, { 
-            max_new_tokens: 100,
-            temperature: 0.7
+        const output = await generator(input.value, { 
+            max_new_tokens: 64,
+            temperature: 0.5 
         });
 
-        const answer = output[0].generated_text[output[0].generated_text.length - 1].content;
-
         status.innerText = "✨ Hotovo";
-        resultBox.classList.remove('hidden');
-        resSummary.innerText = answer;
-        document.getElementById('res-meta').innerText = "Model: Qwen2.5-0.5B-q4 | Device: WebGPU";
+        document.getElementById('result-area').classList.remove('hidden');
+        responseText.innerText = output[0].generated_text;
 
     } catch (err) {
-        console.error("DEBUG ERROR:", err);
-        status.innerText = "❌ Chyba načítání modelu";
-        alert("Chyba: Model je příliš velký nebo WebGPU selhalo. Zkuste obnovit stránku.");
-    } finally {
-        btn.disabled = false;
+        console.error("Wasm Error:", err);
+        status.innerText = "❌ Chyba WebGPU/Wasm";
     }
 }
 
-document.getElementById('run-btn').addEventListener('click', runAgent);
+document.getElementById('send-btn').addEventListener('click', runAgent);
