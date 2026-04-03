@@ -36,29 +36,49 @@ function appendMessage(role, text) {
 async function initAI() {
     if (generator) return generator;
 
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercent = document.getElementById('progress-percent');
+    const progressLabel = document.getElementById('progress-label');
+    const progressContainer = document.getElementById('progress-container');
+
     try {
-        // Používáme Qwen2.5-0.5B, který je pro češtinu v roce 2026 špičkou v malých modelech
         generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
             device: 'webgpu',
-            dtype: 'q4', // 4-bitová kvantizace pro úsporu RAM a rychlost
+            dtype: 'q4',
             progress_callback: (info) => {
-                // ... tvůj kód pro progress bar ...
+                if (info.status === 'initiate') {
+                    progressContainer.classList.remove('hidden');
+                }
+                
                 if (info.status === 'progress') {
-                    const p = Math.round(info.progress);
-                    document.getElementById('progress-bar').style.width = `${p}%`;
-                    document.getElementById('progress-percent').innerText = `${p}%`;
+                    // 1. POKUD VÍME CELKOVOU VELIKOST (Standardní progress bar)
+                    if (info.total && info.loaded) {
+                        const p = Math.round((info.loaded / info.total) * 100);
+                        progressBar.style.width = `${p}%`;
+                        progressPercent.innerText = `${p}%`;
+                        progressLabel.innerText = `Stahuji: ${info.file}`;
+                    } 
+                    // 2. POKUD VELIKOST NEVÍME (Ukazujeme aspoň MB)
+                    else if (info.loaded) {
+                        const loadedMB = (info.loaded / (1024 * 1024)).toFixed(1);
+                        // Simulujeme pohyb baru, aby uživatel věděl, že to nezamrzlo
+                        progressBar.style.width = `${(Math.log10(info.loaded / 1024) * 10) % 100}%`;
+                        progressPercent.innerText = `${loadedMB} MB`;
+                        progressLabel.innerText = `Načítám data: ${info.file}`;
+                    }
+                }
+
+                if (info.status === 'ready') {
+                    progressContainer.classList.add('hidden');
+                    document.getElementById('status-dot').classList.replace('bg-red-500', 'bg-green-500');
+                    document.getElementById('status-text').innerText = "Model připraven lokálně";
                 }
             }
         });
         return generator;
     } catch (err) {
-        console.error("WebGPU selhalo, zkouším WASM fallback...", err);
-        // Fallback na CPU (WASM), pokud uživatel nemá WebGPU
-        generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
-            device: 'wasm',
-            dtype: 'q8' 
-        });
-        return generator;
+        console.error("Iniciace selhala:", err);
+        document.getElementById('status-text').innerText = "❌ Chyba WebGPU / Cache";
     }
 }
 
