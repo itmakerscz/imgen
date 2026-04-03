@@ -13,56 +13,68 @@ if ('serviceWorker' in navigator) {
 env.allowLocalModels = false;
 env.useBrowserCache = true; 
 
+const chatWindow = document.getElementById('chat-window');
+const userInput = document.getElementById('user-input');
+const status = document.getElementById('status');
+const btn = document.getElementById('send-btn');
+
 let generator = null;
+let messages = [
+    { role: "system", content: `Jsi expertní asistent portálu Robotizujto.cz. Odpovídej stručně a česky. Znalosti: ${ROBOTIZUJTO_DATA}` }
+];
 
-async function runAgent() {
-    const input = document.getElementById('user-input');
-    const status = document.getElementById('status');
-    const responseText = document.getElementById('response-text');
-    const btn = document.getElementById('send-btn');
+async function addMessage(role, text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = role === 'user' 
+        ? "bg-slate-800 p-3 rounded-2xl ml-auto max-w-[80%] text-sm border border-white/5" 
+        : "bg-blue-600/20 p-3 rounded-2xl mr-auto max-w-[80%] text-sm border border-blue-500/30 text-blue-100";
+    msgDiv.innerText = text;
+    chatWindow.appendChild(msgDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+}
 
-    if (!input.value.trim()) return;
+async function handleChat() {
+    const text = userInput.value.trim();
+    if (!text || btn.disabled) return;
 
+    // 1. Zobrazení zprávy uživatele
+    addMessage('user', text);
+    messages.push({ role: "user", content: text });
+    userInput.value = '';
     btn.disabled = true;
-    status.innerText = "⏳ Načítám Wasm model z Cache...";
 
     try {
         if (!generator) {
-            // Používáme SmolLM2 - cca 130MB, ideální pro offline PWA
+            status.innerText = "⏳ Inicializace WebGPU (SmolLM2-135M)...";
             generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
-                device: 'webgpu'//,
-                //dtype: 'q4'
+                device: 'webgpu',
+                dtype: 'q4'
             });
-            // Používáme Qwen2.5-0.5B - nejmenší stabilní model pro rok 2026
-            //generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
-            //    device: 'webgpu', // Využije grafiku tvého zařízení
-            //    dtype: 'q4'       // Kvantizace na 4 bity (ušetří 75 % RAM)
-            //});
         }
 
-        status.innerText = "🧠 Generuji odpověď (lokálně)...";
-        
-        //const prompt = `Jsi expert na Robotizujto.cz. Použij tyto informace: ${ROBOTIZUJTO_DATA}\n\nUživatel: ${input.value}\nOdpověď:`;
-        const prompt = `Uživatel: ${input.value}\nOdpověď:`;
+        status.innerText = "🧠 Agent přemýšlí...";
 
-        const output = await generator(prompt, { 
-            max_new_tokens: 1000,
+        // 2. Generování odpovědi
+        const output = await generator(messages, { 
+            max_new_tokens: 150,
             temperature: 0.7,
-            repetition_penalty: 1.2
+            top_k: 40
         });
 
-        const result = output[0].generated_text.split('Odpověď:')[1] || output[0].generated_text;
-
-        status.innerText = "✨ Výsledek z WebAssembly";
-        document.getElementById('result-area').classList.remove('hidden');
-        responseText.innerText = result.trim();
+        const reply = output[0].generated_text[output[0].generated_text.length - 1].content;
+        
+        // 3. Zobrazení odpovědi agenta
+        addMessage('assistant', reply);
+        messages.push({ role: "assistant", content: reply });
+        status.innerText = "✨ Online (WebGPU)";
 
     } catch (err) {
         console.error(err);
-        status.innerText = "❌ Chyba: WebGPU není dostupné";
+        status.innerText = "❌ Chyba WebGPU: " + err.message;
     } finally {
         btn.disabled = false;
     }
 }
 
-document.getElementById('send-btn').addEventListener('click', runAgent);
+btn.addEventListener('click', handleChat);
+userInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleChat(); });;
