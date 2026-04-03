@@ -1,78 +1,64 @@
 import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 import { ROBOTIZUJTO_DATA } from './data.js';
 
-// KONFIGURACE PRO AUTOMATICKOU CACHE
-env.useBrowserCache = true; 
-env.allowLocalModels = false; // Vypneme hledání lokálních souborů, chceme HF Hub
+// Globální nastavení prostředí
+env.useBrowserCache = true;
+env.allowLocalModels = false;
 
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 const statusText = document.getElementById('status-text');
-const statusDot = document.getElementById('status-dot');
-const progressContainer = document.getElementById('progress-container');
 const progressBar = document.getElementById('progress-bar');
-const progressPercent = document.getElementById('progress-percent');
+const progressContainer = document.getElementById('progress-container');
 
 let generator = null;
-let messages = [
-    { 
-        role: "system", 
-        content: `You are a professional AI assistant for Robotizujto.cz. 
-        You have been provided with context data in English. 
-        When a user asks a question in Czech, translate the relevant information from the context and answer in Czech. 
-        Be concise and helpful.
+let isInitializing = false; // Prevence vícenásobné inicializace
 
-        CONTEXT DATA:
-        ${ROBOTIZUJTO_DATA}` 
-    }
-];
+// System Prompt: Anglická data, Český výstup
+const systemPrompt = { 
+    role: "system", 
+    content: `You are an AI assistant for Robotizujto.cz. Use the following English context to answer in Czech. Be brief.
+    CONTEXT: ${ROBOTIZUJTO_DATA}`
+};
 
-function appendMessage(role, text) {
-    const div = document.createElement('div');
-    div.className = role === 'user' 
-        ? "ml-auto bg-blue-600/20 p-3 rounded-2xl max-w-[85%] border border-blue-500/20" 
-        : "mr-auto bg-white/5 p-3 rounded-2xl max-w-[85%] border border-white/10 text-blue-50";
-    div.innerHTML = `<span class="text-[9px] uppercase opacity-30 font-bold block mb-1">${role === 'user' ? 'Uživatel' : 'Robotizujto'}</span>${text}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
+let messages = [systemPrompt];
 
-async function loadAI() {
+async function initModel() {
     if (generator) return generator;
+    if (isInitializing) return; // Pokud už se načítá, nezačínej znovu
+    
+    isInitializing = true;
+    statusText.innerText = "INICIALIZACE WEBGPU...";
 
     try {
-        statusText.innerText = "NAČÍTÁM WEBGPU ENGINE...";
-        
-        // Cesta k oficiálnímu ONNX modelu na Hugging Face
-        const model_id = 'onnx-community/SmolLM2-135M-Instruct-ONNX';
-
-        generator = await pipeline('text-generation', model_id, {
+        // Zkusíme SmolLM2-135M s automatickou detekcí nejlepšího dtype pro tvou kartu
+        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
             device: 'webgpu',
-            dtype: 'q4f16', // Nejrychlejší formát pro GPU
+            // Pokud q4f16 hází chybu 247239448, Transformers.js se pokusí o auto-fallback
             progress_callback: (info) => {
                 if (info.status === 'initiate') progressContainer.classList.remove('hidden');
                 if (info.status === 'progress') {
-                    const p = Math.round(info.progress || 0);
-                    progressBar.style.width = `${p}%`;
-                    progressPercent.innerText = `${p}%`;
+                    progressBar.style.width = `${info.progress || 0}%`;
                 }
                 if (info.status === 'ready') {
                     progressContainer.classList.add('hidden');
-                    statusDot.classList.replace('bg-red-500', 'bg-green-500');
-                    statusText.innerText = "MODEL NAČTEN (WEBGPU)";
+                    statusText.innerText = "SMOLLM2 PŘIPRAVEN";
                 }
             }
         });
+        isInitializing = false;
         return generator;
     } catch (err) {
-        statusText.innerText = "WEBGPU SELHALO - ZKOUŠÍM CPU (WASM)";
-        console.error(err);
-        // Fallback na CPU pokud GPU není dostupné
+        console.error("WebGPU Error:", err);
+        statusText.innerText = "WEBGPU SELHALO - POUŽÍVÁM CPU (POMALEJŠÍ)";
+        
+        // Fallback na CPU (WASM) - toto by mělo chybu 247239448 odstranit vždy
         generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
             device: 'wasm',
             dtype: 'q8'
         });
+        isInitializing = false;
         return generator;
     }
 }
@@ -81,34 +67,48 @@ async function handleChat() {
     const text = userInput.value.trim();
     if (!text || sendBtn.disabled) return;
 
-    appendMessage('user', text);
+    // UI: Přidat zprávu uživatele
+    const userDiv = document.createElement('div');
+    userDiv.className = "ml-auto bg-blue-600/20 p-3 rounded-xl max-w-[85%] border border-blue-500/20 mb-4";
+    userDiv.innerText = text;
+    chatBox.appendChild(userDiv);
+    
     messages.push({ role: "user", content: text });
     userInput.value = '';
     sendBtn.disabled = true;
 
     try {
-        const ai = await loadAI();
-        statusText.innerText = "GENERUJI ODPOVĚĎ...";
+        const ai = await initModel();
+        if (!ai) throw new Error("Model se nepodařilo inicializovat.");
 
+        statusText.innerText = "AGENT PŘEMÝŠLÍ...";
+        
         const output = await ai(messages, { 
-            max_new_tokens: 120,
-            temperature: 0.2,
+            max_new_tokens: 100,
+            temperature: 0.2, // Pro přesnost z anglických dat
             repetition_penalty: 1.2
         });
 
         const reply = output[0].generated_text[output[0].generated_text.length - 1].content;
-        appendMessage('assistant', reply);
-        messages.push({ role: "assistant", content: reply });
-        statusText.innerText = "PŘIPRAVEN";
         
-        // Udržování kontextu (max 5 zpráv)
+        // UI: Přidat odpověď AI
+        const aiDiv = document.createElement('div');
+        aiDiv.className = "mr-auto bg-white/5 p-3 rounded-xl max-w-[85%] border border-white/10 mb-4";
+        aiDiv.innerText = reply;
+        chatBox.appendChild(aiDiv);
+        
+        messages.push({ role: "assistant", content: reply });
+        
+        // Reset stavu
+        statusText.innerText = "PŘIPRAVEN";
         if (messages.length > 6) messages.splice(1, 2);
 
     } catch (err) {
         console.error(err);
-        statusText.innerText = "CHYBA PŘI VÝPOČTU";
+        statusText.innerText = "CHYBA: " + err.message;
     } finally {
         sendBtn.disabled = false;
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 }
 
