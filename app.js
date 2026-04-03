@@ -1,57 +1,74 @@
 import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 import { ROBOTIZUJTO_DATA } from './data.js';
 
-// Konfigurace pro lokální běh a cache
-env.useBrowserCache = true;
-env.allowLocalModels = true; 
+// KONFIGURACE PRO AUTOMATICKOU CACHE
+env.useBrowserCache = true; 
+env.allowLocalModels = false; // Vypneme hledání lokálních souborů, chceme HF Hub
 
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 const statusText = document.getElementById('status-text');
+const statusDot = document.getElementById('status-dot');
 const progressContainer = document.getElementById('progress-container');
 const progressBar = document.getElementById('progress-bar');
+const progressPercent = document.getElementById('progress-percent');
 
 let generator = null;
-
-// Kontext pro SmolLM2 - musí být stručný, protože model má menší "paměť" (context window)
 let messages = [
     { 
         role: "system", 
-        content: `Jsi AI asistent Robotizujto.cz. Odpovídej česky a velmi stručně. 
-        Data: ${ROBOTIZUJTO_DATA}` 
+        content: `You are a professional AI assistant for Robotizujto.cz. 
+        You have been provided with context data in English. 
+        When a user asks a question in Czech, translate the relevant information from the context and answer in Czech. 
+        Be concise and helpful.
+
+        CONTEXT DATA:
+        ${ROBOTIZUJTO_DATA}` 
     }
 ];
 
-async function initSmolLM() {
+function appendMessage(role, text) {
+    const div = document.createElement('div');
+    div.className = role === 'user' 
+        ? "ml-auto bg-blue-600/20 p-3 rounded-2xl max-w-[85%] border border-blue-500/20" 
+        : "mr-auto bg-white/5 p-3 rounded-2xl max-w-[85%] border border-white/10 text-blue-50";
+    div.innerHTML = `<span class="text-[9px] uppercase opacity-30 font-bold block mb-1">${role === 'user' ? 'Uživatel' : 'Robotizujto'}</span>${text}`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function loadAI() {
     if (generator) return generator;
 
     try {
-        statusText.innerText = "NAČÍTÁM SMOLLM2 (WEBGPU)...";
+        statusText.innerText = "NAČÍTÁM WEBGPU ENGINE...";
         
-        // Načtení konkrétního modelu ze složky nebo z HF
-        // Pokud máš model ve složce, změň 'HuggingFaceTB/SmolLM2-135M-Instruct' na './model/'
-        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
+        // Cesta k oficiálnímu ONNX modelu na Hugging Face
+        const model_id = 'onnx-community/SmolLM2-135M-Instruct-ONNX';
+
+        generator = await pipeline('text-generation', model_id, {
             device: 'webgpu',
-            dtype: 'q4f16', // Specifická kvantizace q4f16 pro maximální výkon
+            dtype: 'q4f16', // Nejrychlejší formát pro GPU
             progress_callback: (info) => {
                 if (info.status === 'initiate') progressContainer.classList.remove('hidden');
                 if (info.status === 'progress') {
-                    const p = info.progress || 0;
+                    const p = Math.round(info.progress || 0);
                     progressBar.style.width = `${p}%`;
-                    document.getElementById('progress-percent').innerText = `${Math.round(p)}%`;
+                    progressPercent.innerText = `${p}%`;
                 }
                 if (info.status === 'ready') {
                     progressContainer.classList.add('hidden');
-                    statusText.innerText = "PŘIPRAVEN (SMOLLM2)";
+                    statusDot.classList.replace('bg-red-500', 'bg-green-500');
+                    statusText.innerText = "MODEL NAČTEN (WEBGPU)";
                 }
             }
         });
         return generator;
     } catch (err) {
-        statusText.innerText = "WEBGPU CHYBA - ZKOUŠÍM CPU...";
+        statusText.innerText = "WEBGPU SELHALO - ZKOUŠÍM CPU (WASM)";
         console.error(err);
-        // Fallback na CPU pokud WebGPU selže
+        // Fallback na CPU pokud GPU není dostupné
         generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
             device: 'wasm',
             dtype: 'q8'
@@ -64,43 +81,34 @@ async function handleChat() {
     const text = userInput.value.trim();
     if (!text || sendBtn.disabled) return;
 
-    // Přidání zprávy do UI
-    const userDiv = document.createElement('div');
-    userDiv.className = "ml-auto bg-blue-600/20 p-3 rounded-xl max-w-[80%] border border-blue-500/20 mb-4";
-    userDiv.innerText = text;
-    chatBox.appendChild(userDiv);
-    
+    appendMessage('user', text);
     messages.push({ role: "user", content: text });
     userInput.value = '';
     sendBtn.disabled = true;
 
     try {
-        const ai = await initSmolLM();
-        
+        const ai = await loadAI();
+        statusText.innerText = "GENERUJI ODPOVĚĎ...";
+
         const output = await ai(messages, { 
-            max_new_tokens: 100,
-            temperature: 0.2, // Nízká teplota pro přesnost u takto malého modelu
-            repetition_penalty: 1.2,
-            top_k: 40
+            max_new_tokens: 120,
+            temperature: 0.2,
+            repetition_penalty: 1.2
         });
 
         const reply = output[0].generated_text[output[0].generated_text.length - 1].content;
-        
-        const aiDiv = document.createElement('div');
-        aiDiv.className = "mr-auto bg-white/5 p-3 rounded-xl max-w-[80%] border border-white/10 mb-4";
-        aiDiv.innerText = reply;
-        chatBox.appendChild(aiDiv);
-        
+        appendMessage('assistant', reply);
         messages.push({ role: "assistant", content: reply });
+        statusText.innerText = "PŘIPRAVEN";
         
-        // Omezení historie pro SmolLM2 (má menší context window než Qwen)
-        if (messages.length > 5) messages.splice(1, 2);
+        // Udržování kontextu (max 5 zpráv)
+        if (messages.length > 6) messages.splice(1, 2);
 
     } catch (err) {
-        statusText.innerText = "CHYBA GENEROVÁNÍ";
+        console.error(err);
+        statusText.innerText = "CHYBA PŘI VÝPOČTU";
     } finally {
         sendBtn.disabled = false;
-        chatBox.scrollTop = chatBox.scrollHeight;
     }
 }
 
