@@ -105,9 +105,18 @@ async function handleChat() {
         statusText.innerText = "🧠 Generuji odpověď...";
         
         const output = await ai(messages, { 
-            max_new_tokens: 120, 
-            temperature: 0.6,
-            repetition_penalty: 1.2
+            // Teplota: 0.1 až 0.3 je pro fakta nejlepší. 
+            // Vyšší (0.7+) je pro kreativní psaní, ale víc lže.
+            temperature: 0.2, 
+            
+            // Max tokenů: Nastav limit, aby model nezačal opakovat nesmysly.
+            max_new_tokens: 150,
+            
+            // Repetition Penalty: Zabraňuje modelu, aby se zacyklil v jedné větě.
+            repetition_penalty: 1.2,
+            
+            // Top_p: Omezuje výběr slov na ta nejpravděpodobnější.
+            top_p: 0.9
         });
 
         const reply = output[0].generated_text[output[0].generated_text.length - 1].content;
