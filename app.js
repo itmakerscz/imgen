@@ -35,7 +35,7 @@ async function initModel() {
         // Zkusíme SmolLM2-135M s automatickou detekcí nejlepšího dtype pro tvou kartu
         generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
             device: 'webgpu',
-            dtype: 'q4f16',
+            dtype: 'q8',
             // Pokud q4f16 hází chybu 247239448, Transformers.js se pokusí o auto-fallback
             progress_callback: (info) => {
                 if (info.status === 'initiate') progressContainer.classList.remove('hidden');
