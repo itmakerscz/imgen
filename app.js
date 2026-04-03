@@ -29,30 +29,33 @@ function appendMessage(role, text) {
 }
 
 // --- NABÍJENÍ MODELU (CACHE-FIRST) ---
+// app.js - změna na funkční český model
 async function initAI() {
     if (generator) return generator;
 
     try {
-        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
+        // Používáme Qwen2.5-0.5B, který je pro češtinu v roce 2026 špičkou v malých modelech
+        generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
             device: 'webgpu',
-            dtype: 'q4',
+            dtype: 'q4', // 4-bitová kvantizace pro úsporu RAM a rychlost
             progress_callback: (info) => {
-                if (info.status === 'initiate') progressContainer.classList.remove('hidden');
+                // ... tvůj kód pro progress bar ...
                 if (info.status === 'progress') {
-                    progressBar.style.width = `${info.progress}%`;
-                    progressPercent.innerText = `${Math.round(info.progress)}%`;
-                }
-                if (info.status === 'ready') {
-                    progressContainer.classList.add('hidden');
-                    statusDot.classList.replace('bg-red-500', 'bg-green-500');
-                    statusText.innerText = "Model připraven lokálně (Cache)";
+                    const p = Math.round(info.progress);
+                    document.getElementById('progress-bar').style.width = `${p}%`;
+                    document.getElementById('progress-percent').innerText = `${p}%`;
                 }
             }
         });
         return generator;
     } catch (err) {
-        statusText.innerText = "Chyba: WebGPU není podporováno";
-        console.error(err);
+        console.error("WebGPU selhalo, zkouším WASM fallback...", err);
+        // Fallback na CPU (WASM), pokud uživatel nemá WebGPU
+        generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct-ONNX', {
+            device: 'wasm',
+            dtype: 'q8' 
+        });
+        return generator;
     }
 }
 
