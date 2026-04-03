@@ -96,6 +96,10 @@ async function handleChat() {
     if (!query) return;
 
     appendMessage('user', query);
+    // Místo čistého textu pošleme modelu "instrukci"
+    const enhancedQuery = `Na základě tvých znalostí o Robotizujto odpověz na otázku: ${query}`;
+    
+    messages.push({ role: "user", content: enhancedQuery });
     messages.push({ role: "user", content: query });
     userInput.value = '';
     sendBtn.disabled = true;
