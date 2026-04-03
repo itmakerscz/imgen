@@ -4,7 +4,8 @@ const ASSETS = [
     './index.html',
     './app.js',
     './data.js',
-    './manifest.json'
+    './manifest.json',
+    './tailwind.min.js'
 ];
 
 self.addEventListener('install', (e) => {
