@@ -16,7 +16,10 @@ const progressPercent = document.getElementById('progress-percent');
 
 let generator = null;
 let messages = [
-    { role: "system", content: `Jsi AI expert Robotizujto.cz. Odpovídej stručně. Znalosti: ${ROBOTIZUJTO_DATA}` }
+    { 
+        role: "system", 
+        content: "Jsi přátelský asistent portálu Robotizujto.cz. Mluv výhradně ČESKY. Odpovídej stručně a jasně. Znalosti: " + ROBOTIZUJTO_DATA 
+    }
 ];
 
 // --- POMOCNÉ FUNKCE ---
