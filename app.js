@@ -17,8 +17,7 @@ createApp({
 
         let engine = null;
 
-        // --- NEW MODEL SELECTION ---
-        // TinyLlama-1.1B-Chat-v1.0-q4f32_1-MLC is great for reasoning and following system prompts.
+        // Using TinyLlama q4f32 for maximum compatibility and speed
         const MODEL_ID = "TinyLlama-1.1B-Chat-v1.0-q4f32_1-MLC";
 
         const loadDashboard = async () => {
@@ -32,7 +31,7 @@ createApp({
             const id = await db.chats.add({ 
                 agentName: name, 
                 createdAt: new Date(), 
-                history: [{ role: 'assistant', content: `Agent ${name} initialized. Ready for instructions.` }] 
+                history: [{ role: 'assistant', content: `Agent ${name} (TinyLlama) is online and ready.` }] 
             });
             await openChat(id);
         };
@@ -55,24 +54,22 @@ createApp({
                 engine = new webllm.MLCEngine();
                 engine.setInitProgressCallback((report) => {
                     loading.value = true;
-                    // Smoothing the progress display
                     progress.value = Math.round(report.progress * 100);
                     if (report.progress === 1) {
                         loading.value = false;
                         isReady.value = true;
                     }
                 });
-                // Loading the specific Hermes model
                 await engine.reload(MODEL_ID);
             } catch (err) {
                 console.error("WASM/WebGPU Init Error:", err);
-                alert("WebGPU failed. Make sure you are using Chrome/Edge and have a compatible GPU.");
+                alert("Initialization failed. Check if WebGPU is enabled in your browser.");
             }
         };
 
         const addKnowledge = async () => {
             if (!activeChatId.value) return;
-            const title = prompt("Knowledge Title (e.g., Company Bio):");
+            const title = prompt("Knowledge Title:");
             const content = prompt("Paste English Content:");
             if (title && content) {
                 await db.sources.add({ 
@@ -80,7 +77,6 @@ createApp({
                     title: title, 
                     content: content 
                 });
-                // Refresh local sources state immediately
                 sources.value = await db.sources.where({ chatId: activeChatId.value }).toArray();
             }
         };
@@ -94,31 +90,31 @@ createApp({
             await nextTick(scrollChat);
 
             try {
-                // Build RAG context from sources
-                const context = sources.value.map(s => `SOURCE (${s.title}): ${s.content}`).join("\n\n");
+                // Build Context String
+                const context = sources.value.map(s => `[DATA: ${s.title}]\n${s.content}`).join("\n\n");
                 
                 const systemPrompt = { 
                     role: "system", 
-                    content: `You are an expert AI agent. Use the provided context to answer the user. If the context doesn't contain the answer, use your general knowledge. CONTEXT:\n${context}` 
+                    content: `You are a helpful AI Agent. Use this context if available:\n${context}` 
                 };
 
                 const response = await engine.chat.completions.create({
                     messages: [systemPrompt, ...messages.value],
-                    temperature: 0.4, // Slightly higher for better reasoning
-                    max_tokens: 512
+                    temperature: 0.5,
+                    max_tokens: 400
                 });
 
                 const aiReply = response.choices[0].message;
                 messages.value.push(aiReply);
                 
-                // Save updated history back to IndexedDB
+                // Update history in IndexedDB
                 await db.chats.update(activeChatId.value, { 
                     history: JSON.parse(JSON.stringify(messages.value)) 
                 });
                 await nextTick(scrollChat);
             } catch (err) {
                 console.error("Generation Error:", err);
-                messages.value.push({ role: 'assistant', content: "Error: Generation failed." });
+                messages.value.push({ role: 'assistant', content: "Error: AI generation failed." });
             }
         };
 
