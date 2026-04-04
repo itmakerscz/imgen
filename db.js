@@ -1,4 +1,4 @@
-import Dexie from './assets/dexie.mjs';
+import Dexie from 'assets/dexie.mjs';
 
 export const db = new Dexie('NevimtoDB');
 db.version(1).stores({
