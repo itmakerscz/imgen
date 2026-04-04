@@ -59,7 +59,7 @@ createApp({
                     isReady.value = true;
                 }
             });
-            await engine.reload("SmolLM2-135M-Instruct-q4f16_1-MLC");
+            await engine.reload("Hermes-3-Llama-3.2-3B-q4f16_1-MLC");
         };
 
         const sendMessage = async () => {
