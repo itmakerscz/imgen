@@ -1,0 +1,54 @@
+/* ... předchozí styly zachovány ... */
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 40px;
+}
+
+.tile {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+    position: relative;
+}
+
+.tile:hover { transform: translateY(-5px); border-color: var(--accent); }
+
+.new-chat { border: 2px dashed var(--border); text-align: center; }
+.new-chat .icon { font-size: 40px; color: var(--accent); margin-bottom: 10px; }
+
+.chat-interface { display: flex; height: 100vh; width: 100%; }
+
+.sidebar {
+    width: 260px;
+    background: rgba(0,0,0,0.3);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-main { flex: 1; display: flex; flex-direction: column; position: relative; }
+
+.btn-add-data {
+    margin-top: auto;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.source-item {
+    background: rgba(255,255,255,0.05);
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
