@@ -2,13 +2,13 @@ const CACHE_NAME = 'nevimto-v1';
 const ASSETS = [
     './',
     './index.html',
-    './style.css',
+    './assets/style.css',
     './app.js',
     './db.js',
     './favicon.ico',
     './manifest.json',
-    './vue.global.js',
-    './dexie.mjs'
+    './assets/vue.global.js',
+    './assets/dexie.mjs'
 ];
 
 self.addEventListener('install', e => {
