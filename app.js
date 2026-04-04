@@ -18,8 +18,8 @@ createApp({
         let engine = null;
 
         // --- NEW MODEL SELECTION ---
-        // Hermes-3-Llama-3.2-3B is great for reasoning and following system prompts.
-        const MODEL_ID = "Hermes-3-Llama-3.2-3B-q4f16_1-MLC";
+        // TinyLlama-1.1B-Chat-v1.0-q4f32_1-MLC is great for reasoning and following system prompts.
+        const MODEL_ID = "TinyLlama-1.1B-Chat-v1.0-q4f32_1-MLC";
 
         const loadDashboard = async () => {
             activeChatId.value = null;
