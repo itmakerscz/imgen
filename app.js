@@ -17,18 +17,25 @@ createApp({
 
         let engine;
 
+        // Register Service Worker for PWA
+        const registerSW = () => {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log("SW failed", err));
+            }
+        };
+
         const loadDashboard = async () => {
             activeChatId.value = null;
             chats.value = await db.chats.orderBy('createdAt').reverse().toArray();
         };
 
         const startNewAgent = async () => {
-            const name = prompt("Enter Agent Name:");
+            const name = prompt("Name your AI Agent:");
             if (!name) return;
             const id = await db.chats.add({ 
                 agentName: name, 
                 createdAt: new Date(), 
-                history: [{ role: 'assistant', content: `Hello, I am ${name}. How can I assist you?` }] 
+                history: [{ role: 'assistant', content: `Agent ${name} is online. How can I help?` }] 
             });
             openChat(id);
         };
@@ -39,10 +46,10 @@ createApp({
             messages.value = chat.history;
             sources.value = await db.sources.where({ chatId: id }).toArray();
             if (!engine) initLLM();
-            nextTick(scrollChat);
         };
 
         const initLLM = async () => {
+            // WebLLM uses WebAssembly and WebGPU for execution
             engine = new webllm.MLCEngine();
             engine.setInitProgressCallback((report) => {
                 loading.value = true;
@@ -55,48 +62,32 @@ createApp({
             await engine.reload("SmolLM2-135M-Instruct-q4f16_1-MLC");
         };
 
-        const addKnowledge = async () => {
-            const title = prompt("Knowledge Title (e.g. Project Docs):");
-            const content = prompt("Paste Content (English):");
-            if (title && content) {
-                await db.sources.add({ chatId: activeChatId.value, title, content });
-                sources.value = await db.sources.where({ chatId: activeChatId.value }).toArray();
-            }
-        };
-
         const sendMessage = async () => {
             if (!userInput.value.trim()) return;
             const text = userInput.value;
             messages.value.push({ role: 'user', content: text });
             userInput.value = '';
-            await scrollChat();
 
-            const context = sources.value.map(s => s.content).join("\n\n");
+            const context = sources.value.map(s => s.content).join("\n");
             
             const response = await engine.chat.completions.create({
                 messages: [
-                    { role: "system", content: `You are a helpful AI Agent. Context knowledge: ${context}` },
+                    { role: "system", content: `Context: ${context}` },
                     ...messages.value
                 ],
                 temperature: 0.2
             });
 
-            const reply = response.choices[0].message.content;
-            messages.value.push({ role: 'assistant', content: reply });
-            
+            messages.value.push(response.choices[0].message);
             await db.chats.update(activeChatId.value, { history: JSON.parse(JSON.stringify(messages.value)) });
-            await scrollChat();
+            nextTick(() => chatBox.value.scrollTop = chatBox.value.scrollHeight);
         };
 
-        const scrollChat = () => {
-            if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight;
-        };
+        onMounted(() => {
+            registerSW();
+            loadDashboard();
+        });
 
-        onMounted(loadDashboard);
-
-        return { 
-            activeChatId, chats, messages, sources, userInput, loading, progress, isReady, chatBox,
-            startNewAgent, openChat, addKnowledge, sendMessage, loadDashboard 
-        };
+        return { activeChatId, chats, messages, sources, userInput, loading, progress, isReady, chatBox, startNewAgent, openChat, sendMessage, loadDashboard };
     }
 }).mount('#app');
