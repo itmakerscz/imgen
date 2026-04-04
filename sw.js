@@ -7,8 +7,8 @@ const ASSETS = [
     './db.js',
     './favicon.ico',
     './manifest.json',
-    './assets/vue.global.js',
-    './assets/dexie.mjs'
+    './vue.global.js',
+    './dexie.mjs'
 ];
 
 self.addEventListener('install', e => {
