@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeBuddy AI</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/lib/index.js"></script>
+</head>
+<body>
+
+<div id="app" v-cloak>
+    <div class="chat-container">
+        <header>
+            <h1>🌈 SafeBuddy</h1>
+            <div class="status-indicator" :class="{ loading: isLoading }">
+                {{ statusText }}
+            </div>
+        </header>
+
+        <main class="chat-window" ref="chatWindow">
+            <div v-for="(msg, index) in chatHistory" 
+                 :key="index" 
+                 :class="['message', msg.role]">
+                <div class="bubble">
+                    {{ msg.content }}
+                </div>
+            </div>
+            <div v-if="isTyping" class="message assistant">
+                <div class="bubble typing">Buddy is thinking...</div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="input-wrapper">
+                <input 
+                    v-model="userInput" 
+                    @keyup.enter="handleSend" 
+                    placeholder="Type a friendly message..."
+                    :disabled="isLoading || !isEngineReady"
+                >
+                <button @click="handleSend" :disabled="isLoading || !isEngineReady">
+                    <span>Send</span>
+                </button>
+            </div>
+        </footer >
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
