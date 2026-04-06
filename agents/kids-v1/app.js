@@ -1,3 +1,6 @@
+// Add this at the very top of app.js
+import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
 const { createApp, ref, onMounted, nextTick } = Vue;
 
 createApp({
@@ -31,8 +34,9 @@ createApp({
 
         onMounted(async () => {
             try {
-                // Initialize the WebLLM engine with a small, safe model
-                engine = await webllm.CreateMLCEngine("Gemma-2b-it-q4f16_1-MLC", {
+                // Initialize the WebLLM engine
+                // Using a smaller model for faster loading
+                engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
                     initProgressCallback: (report) => {
                         statusText.value = `Loading Buddy: ${Math.round(report.progress * 100)}%`;
                     }
@@ -42,7 +46,7 @@ createApp({
                 isLoading.value = false;
                 isEngineReady.value = true;
             } catch (err) {
-                statusText.value = "Error: WebGPU not supported in this browser.";
+                statusText.value = "Error: WebGPU not supported or model failed to load.";
                 console.error(err);
             }
         });
@@ -67,7 +71,7 @@ createApp({
                 
                 chatHistory.value.push({ role: 'assistant', content: reply });
             } catch (error) {
-                chatHistory.value.push({ role: 'assistant', content: "Oops, something went wrong. Let's try again!" });
+                chatHistory.value.push({ role: 'assistant', content: "Oops, my brain took a nap. Let's try again!" });
             } finally {
                 isTyping.value = false;
                 await scrollToBottom();
