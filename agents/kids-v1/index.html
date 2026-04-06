@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeBuddy AI</title>
+    <title>SafeKid AI</title>
     <link rel="stylesheet" href="style.css">
     
     <script type="importmap">
@@ -22,14 +22,12 @@
                 <h1>🌈 SafeBuddy</h1>
                 <div class="status-indicator">{{ statusText }}</div>
             </header>
-
             <main class="chat-window" ref="chatWindow">
                 <div v-for="(msg, i) in chatHistory" :key="i" :class="['message', msg.role]">
                     <div class="bubble">{{ msg.content }}</div>
                 </div>
-                <div v-if="isTyping" class="message assistant"><div class="bubble typing">...</div></div>
+                <div v-if="isTyping" class="message assistant"><div class="bubble">...</div></div>
             </main>
-
             <footer>
                 <div class="input-wrapper">
                     <input v-model="userInput" @keyup.enter="handleSend" placeholder="Type here..." :disabled="!isEngineReady">
@@ -38,7 +36,6 @@
             </footer>
         </div>
     </div>
-
     <script type="module" src="app.js"></script>
 </body>
 </html>
