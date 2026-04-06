@@ -1,44 +1,70 @@
 import { createApp, ref, onMounted, nextTick } from 'vue';
 import * as webllm from '@mlc-ai/web-llm';
+import { modelList } from './models.js'; // Import our new list
 
 createApp({
     setup() {
         const userInput = ref('');
         const chatHistory = ref([]);
-        const statusText = ref('Waking up Buddy...');
+        const statusText = ref('Checking hardware...');
         const isEngineReady = ref(false);
+        const isLoading = ref(false);
         const isTyping = ref(false);
         const chatWindow = ref(null);
+        
+        // Logic for model selection
+        const availableModels = ref([]);
+        const selectedModel = ref('');
         let engine;
 
-        const SYSTEM_RULES = "You are SafeBuddy, a kind AI for kids. Short, happy, and safe answers only.";
+        const checkHardwareAndLoadList = async () => {
+            let hasF16 = false;
 
-        onMounted(async () => {
+            // 1. Detect WebGPU and shader-f16 support
+            if (navigator.gpu) {
+                const adapter = await navigator.gpu.requestAdapter();
+                if (adapter && adapter.features.has('shader-f16')) {
+                    hasF16 = true;
+                }
+            }
+
+            // 2. Filter list: If browser doesn't have f16, only show non-f16 models
+            availableModels.value = modelList.filter(m => !m.requiresF16 || (m.requiresF16 && hasF16));
+            
+            // 3. Set default selection to the first available model
+            if (availableModels.value.length > 0) {
+                selectedModel.value = availableModels.value[0].id;
+                statusText.value = hasF16 ? "Ready (Full Support)" : "Ready (Compatibility Mode)";
+            } else {
+                statusText.value = "WebGPU not supported in this browser.";
+            }
+        };
+
+        onMounted(checkHardwareAndLoadList);
+
+        const initAI = async () => {
+            if (isLoading.value) return;
+            isLoading.value = true;
+            statusText.value = "Downloading model weights...";
+
             try {
-                // This specific version (q4f32) avoids the ShaderF16 error!
-                const modelId = "SmolLM2-360M-Instruct-q4f32_1-MLC";
-                
-                engine = await webllm.CreateMLCEngine(modelId, {
+                engine = await webllm.CreateMLCEngine(selectedModel.value, {
                     initProgressCallback: (p) => {
-                        statusText.value = `Loading Buddy: ${Math.round(p.progress * 100)}%`;
+                        statusText.value = `Loading: ${Math.round(p.progress * 100)}%`;
                     }
                 });
-        
-                statusText.value = "✅ Ready to play!";
+                statusText.value = "✅ Buddy is Online!";
                 isEngineReady.value = true;
             } catch (err) {
-                if (err.message.includes("shader-f16")) {
-                    statusText.value = "❌ This browser doesn't support f16 math. Try updating Chrome.";
-                } else {
-                    statusText.value = "❌ Connection Error. Please refresh.";
-                }
-                console.error("AI Error:", err);
+                statusText.value = "❌ Error loading model.";
+                console.error(err);
+            } finally {
+                isLoading.value = false;
             }
-        });
+        };
 
-        const handleSend = async () => {
+        const sendMessage = async () => {
             if (!userInput.value.trim() || !isEngineReady.value) return;
-
             const text = userInput.value;
             chatHistory.value.push({ role: 'user', content: text });
             userInput.value = '';
@@ -46,18 +72,21 @@ createApp({
 
             try {
                 const result = await engine.chat.completions.create({
-                    messages: [{ role: "system", content: SYSTEM_RULES }, ...chatHistory.value],
-                    temperature: 0.2, // Lower is "safer" and more consistent
+                    messages: [{ role: "system", content: "You are a safe AI for kids." }, ...chatHistory.value]
                 });
                 chatHistory.value.push(result.choices[0].message);
             } catch (e) {
-                chatHistory.value.push({ role: 'assistant', content: "My thinking cap fell off! Let's try again." });
+                chatHistory.value.push({ role: 'assistant', content: "I'm tired. Let's try again." });
             } finally {
                 isTyping.value = false;
                 nextTick(() => chatWindow.value.scrollTop = chatWindow.value.scrollHeight);
             }
         };
 
-        return { userInput, chatHistory, statusText, isEngineReady, isTyping, handleSend, chatWindow };
+        return { 
+            userInput, chatHistory, statusText, isEngineReady, 
+            isLoading, isTyping, availableModels, selectedModel, 
+            initAI, sendMessage, chatWindow 
+        };
     }
 }).mount('#app');
