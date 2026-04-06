@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SafeBuddy | Your Friendly AI</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <script type="importmap">
     {
         "imports": {
@@ -21,17 +22,22 @@
         <header class="kid-header">
             <div class="icon">🌟</div>
             <h1>SafeBuddy</h1>
-            <div class="badge">{{ statusText }}</div>
+            <div class="badge" :class="{ 'status-ready': isEngineReady }">{{ statusText }}</div>
         </header>
 
         <section class="setup-area" v-if="!isEngineReady">
             <div class="safety-notice">
                 <p><strong>Parents:</strong> This AI runs 100% on this device. No data is sent to the internet. 🔒</p>
-                <select v-model="selectedModel" :disabled="isLoading">
-                    <option v-for="m in availableModels" :key="m.id" :value="m.id">{{ m.name }}</option>
-                </select>
-                <button @click="initAI" class="start-btn" :disabled="isLoading">
-                    {{ isLoading ? 'Loading...' : 'Start Buddy' }}
+                <div class="model-selector">
+                    <label for="model-select">Choose a Brain:</label>
+                    <select id="model-select" v-model="selectedModel" :disabled="isLoading">
+                        <option v-for="m in availableModels" :key="m.id" :value="m.id">
+                            {{ m.name }}
+                        </option>
+                    </select>
+                </div>
+                <button @click="initAI" class="start-btn" :disabled="isLoading || availableModels.length === 0">
+                    {{ isLoading ? 'Connecting...' : 'Start Buddy' }}
                 </button>
             </div>
         </section>
@@ -43,25 +49,22 @@
                 </div>
             </div>
             <div v-if="isTyping" class="message-row assistant">
-                <div class="msg-bubble thinking">Buddy is thinking...</div>
+                <div class="msg-bubble thinking">Buddy is thinking... ✨</div>
             </div>
         </main>
 
         <footer class="input-zone">
-        <input 
-            v-model="userInput" 
-            @keydown.enter="sendMessage"
-            placeholder="Type here..."
-            maxlength="100"
-            :disabled="!isEngineReady || isTyping"
-        >
-        <button 
-            @click="sendMessage" 
-            :disabled="!isEngineReady || isTyping"
-        >
-        {{ isTyping ? '...' : 'Go!' }}
-    </button>
-</footer>
+            <input 
+                v-model="userInput" 
+                @keydown.enter="sendMessage"
+                placeholder="Tell Buddy something nice..."
+                maxlength="100" 
+                :disabled="!isEngineReady || isTyping"
+            >
+            <button @click="sendMessage" :disabled="!isEngineReady || isTyping || !userInput.trim()">
+                Go!
+            </button>
+        </footer>
     </div>
 </div>
 
