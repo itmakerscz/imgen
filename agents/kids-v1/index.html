@@ -5,49 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SafeBuddy AI</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/lib/index.js"></script>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js",
+            "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm"
+        }
+    }
+    </script>
 </head>
 <body>
+    <div id="app" v-cloak>
+        <div class="chat-container">
+            <header>
+                <h1>🌈 SafeBuddy</h1>
+                <div class="status-indicator">{{ statusText }}</div>
+            </header>
 
-<div id="app" v-cloak>
-    <div class="chat-container">
-        <header>
-            <h1>🌈 SafeBuddy</h1>
-            <div class="status-indicator" :class="{ loading: isLoading }">
-                {{ statusText }}
-            </div>
-        </header>
-
-        <main class="chat-window" ref="chatWindow">
-            <div v-for="(msg, index) in chatHistory" 
-                 :key="index" 
-                 :class="['message', msg.role]">
-                <div class="bubble">
-                    {{ msg.content }}
+            <main class="chat-window" ref="chatWindow">
+                <div v-for="(msg, i) in chatHistory" :key="i" :class="['message', msg.role]">
+                    <div class="bubble">{{ msg.content }}</div>
                 </div>
-            </div>
-            <div v-if="isTyping" class="message assistant">
-                <div class="bubble typing">Buddy is thinking...</div>
-            </div>
-        </main>
+                <div v-if="isTyping" class="message assistant"><div class="bubble typing">...</div></div>
+            </main>
 
-        <footer>
-            <div class="input-wrapper">
-                <input 
-                    v-model="userInput" 
-                    @keyup.enter="handleSend" 
-                    placeholder="Type a friendly message..."
-                    :disabled="isLoading || !isEngineReady"
-                >
-                <button @click="handleSend" :disabled="isLoading || !isEngineReady">
-                    <span>Send</span>
-                </button>
-            </div>
-        </footer >
+            <footer>
+                <div class="input-wrapper">
+                    <input v-model="userInput" @keyup.enter="handleSend" placeholder="Type here..." :disabled="!isEngineReady">
+                    <button @click="handleSend" :disabled="!isEngineReady">Send</button>
+                </div>
+            </footer>
+        </div>
     </div>
-</div>
 
-<script type="module" src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
