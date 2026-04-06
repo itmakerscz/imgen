@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeBuddy AI</title>
+    <title>SafeBuddy | Your Friendly AI</title>
     <link rel="stylesheet" href="style.css">
-    
     <script type="importmap">
     {
         "imports": {
@@ -18,47 +17,44 @@
 <body>
 
 <div id="app" v-cloak>
-    <div class="app-wrapper">
-        <header>
-            <h1>🌈 SafeBuddy</h1>
-            <p class="status">{{ statusText }}</p>
+    <div class="safe-container">
+        <header class="kid-header">
+            <div class="icon">🌟</div>
+            <h1>SafeBuddy</h1>
+            <div class="badge">{{ statusText }}</div>
         </header>
 
-        <section class="setup-panel" v-if="!isEngineReady">
-            <div class="card">
-                <h3>Select a Brain</h3>
+        <section class="setup-area" v-if="!isEngineReady">
+            <div class="safety-notice">
+                <p><strong>Parents:</strong> This AI runs 100% on this device. No data is sent to the internet. 🔒</p>
                 <select v-model="selectedModel" :disabled="isLoading">
-                    <option v-for="model in availableModels" :key="model.id" :value="model.id">
-                        {{ model.name }}
-                    </option>
+                    <option v-for="m in availableModels" :key="m.id" :value="m.id">{{ m.name }}</option>
                 </select>
-                <button @click="initAI" :disabled="isLoading" class="primary-btn">
-                    {{ isLoading ? 'Setting up...' : 'Start Chatting' }}
+                <button @click="initAI" class="start-btn" :disabled="isLoading">
+                    {{ isLoading ? 'Loading...' : 'Start Buddy' }}
                 </button>
-                <p class="help-text">First load takes 1-2 minutes to download the brain.</p>
             </div>
         </section>
 
-        <main class="chat-display" ref="chatWindow">
-            <div v-for="(msg, i) in chatHistory" :key="i" :class="['msg-wrapper', msg.role]">
-                <div class="bubble">
-                    <small>{{ msg.role === 'user' ? 'Me' : 'Buddy' }}</small>
+        <main class="chat-view" ref="chatWindow">
+            <div v-for="(msg, i) in chatHistory" :key="i" :class="['message-row', msg.role]">
+                <div class="msg-bubble">
                     <p>{{ msg.content }}</p>
                 </div>
             </div>
-            <div v-if="isTyping" class="msg-wrapper assistant">
-                <div class="bubble typing">Buddy is thinking...</div>
+            <div v-if="isTyping" class="message-row assistant">
+                <div class="msg-bubble thinking">Buddy is thinking...</div>
             </div>
         </main>
 
-        <footer class="input-bar">
+        <footer class="input-zone">
             <input 
                 v-model="userInput" 
                 @keyup="handleKeyup"
-                placeholder="Ask me anything safe..."
-                :disabled="!isEngineReady || isTyping"
+                placeholder="Tell Buddy something nice..."
+                maxlength="100" 
             >
-            <button @click="sendMessage" :disabled="!isEngineReady || isTyping">Send</button>
+            <button @click="sendMessage" :disabled="!isEngineReady">Go!</button>
         </footer>
     </div>
 </div>
