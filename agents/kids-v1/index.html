@@ -48,14 +48,20 @@
         </main>
 
         <footer class="input-zone">
-            <input 
-                v-model="userInput" 
-                @keyup="handleKeyup"
-                placeholder="Tell Buddy something nice..."
-                maxlength="100" 
-            >
-            <button @click="sendMessage" :disabled="!isEngineReady">Go!</button>
-        </footer>
+        <input 
+            v-model="userInput" 
+            @keydown.enter="sendMessage"
+            placeholder="Type here..."
+            maxlength="100"
+            :disabled="!isEngineReady || isTyping"
+        >
+        <button 
+            @click="sendMessage" 
+            :disabled="!isEngineReady || isTyping"
+        >
+        {{ isTyping ? '...' : 'Go!' }}
+    </button>
+</footer>
     </div>
 </div>
 
