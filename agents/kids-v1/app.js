@@ -15,8 +15,8 @@ createApp({
 
         onMounted(async () => {
             try {
-                // Llama-3.2-1B is highly compatible with 2026 browser runtimes
-                const modelId = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
+                // Replace the old modelId with this one:
+                const modelId = "SmolLM2-135M-Instruct-q4f32_1-MLC";
                 
                 engine = await webllm.CreateMLCEngine(modelId, {
                     initProgressCallback: (p) => {
