@@ -16,7 +16,7 @@ createApp({
         onMounted(async () => {
             try {
                 // This specific version (q4f32) avoids the ShaderF16 error!
-                const modelId = "SmolLM2-135M-Instruct-q4f32_1-MLC";
+                const modelId = "SmolLM2-360M-Instruct-q4f32_1-MLC";
                 
                 engine = await webllm.CreateMLCEngine(modelId, {
                     initProgressCallback: (p) => {
