@@ -1,36 +1,132 @@
-/* Add this at the top for a kid-friendly font */
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap');
-
 :root {
     --kid-blue: #00a8ff;
     --kid-green: #4cd137;
     --kid-bg: #f5f6fa;
     --text: #2f3640;
+    --white: #ffffff;
 }
+
+[v-cloak] { display: none; }
 
 body { 
     font-family: 'Quicksand', sans-serif; 
     background: #dcdde1; 
+    height: 100vh; 
     margin: 0; 
+    display: flex; 
+    justify-content: center; 
 }
 
-/* New Animation */
-@keyframes popIn {
-    from { opacity: 0; transform: translateY(10px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+.safe-container { 
+    width: 100%; 
+    max-width: 500px; 
+    background: var(--kid-bg); 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
 }
 
-.message-row { 
-    animation: popIn 0.3s ease-out forwards; 
+.kid-header { 
+    background: var(--kid-blue); 
+    color: white; 
+    padding: 15px; 
+    text-align: center; 
+    border-bottom: 4px solid rgba(0,0,0,0.1); 
 }
 
-.msg-bubble {
-    border: 2px solid rgba(0,0,0,0.05); /* Adds definition */
+.badge { 
+    background: rgba(0,0,0,0.2); 
+    display: inline-block; 
+    padding: 5px 15px; 
+    border-radius: 20px; 
+    font-size: 0.85rem; 
+    margin-top: 5px;
+    transition: background 0.3s;
 }
 
-/* Better disabled button state */
-button:disabled {
-    filter: grayscale(1);
-    cursor: not-allowed;
-    opacity: 0.7;
+.status-ready { background: var(--kid-green); }
+
+.setup-area { padding: 20px; flex: 1; display: flex; align-items: center; }
+.safety-notice { 
+    padding: 25px; 
+    background: var(--white); 
+    border-radius: 25px; 
+    border: 3px dashed var(--kid-blue); 
+    text-align: center;
+    width: 100%;
 }
+
+.model-selector { margin: 20px 0; text-align: left; }
+select { 
+    width: 100%; 
+    padding: 10px; 
+    border-radius: 10px; 
+    border: 2px solid #ddd; 
+    font-family: inherit;
+}
+
+.start-btn { 
+    background: var(--kid-green); 
+    color: white; 
+    border: none; 
+    padding: 15px 30px; 
+    border-radius: 30px; 
+    font-size: 1.1rem; 
+    font-weight: bold; 
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.start-btn:active { transform: scale(0.95); }
+
+.chat-view { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 20px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px;
+    scroll-behavior: smooth;
+}
+
+.message-row { display: flex; width: 100%; animation: fadeIn 0.3s ease; }
+.message-row.user { justify-content: flex-end; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-bubble { 
+    max-width: 80%; 
+    padding: 12px 18px; 
+    border-radius: 20px; 
+    font-size: 1.05rem; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+}
+
+.user .msg-bubble { background: var(--kid-blue); color: white; border-bottom-right-radius: 2px; }
+.assistant .msg-bubble { background: var(--white); color: var(--text); border-bottom-left-radius: 2px; }
+
+.input-zone { 
+    padding: 15px; 
+    background: var(--white); 
+    display: flex; 
+    gap: 10px; 
+    border-top: 2px solid #eee; 
+}
+
+input { 
+    flex: 1; 
+    padding: 12px 20px; 
+    border: 2px solid #eee; 
+    border-radius: 25px; 
+    outline: none; 
+}
+
+input:focus { border-color: var(--kid-blue); }
+
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.thinking { font-style: italic; color: #aaa; }
