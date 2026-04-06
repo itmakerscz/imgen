@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeKid AI</title>
+    <title>SafeBuddy AI</title>
     <link rel="stylesheet" href="style.css">
     
     <script type="importmap">
@@ -16,26 +16,53 @@
     </script>
 </head>
 <body>
-    <div id="app" v-cloak>
-        <div class="chat-container">
-            <header>
-                <h1>🌈 SafeBuddy</h1>
-                <div class="status-indicator">{{ statusText }}</div>
-            </header>
-            <main class="chat-window" ref="chatWindow">
-                <div v-for="(msg, i) in chatHistory" :key="i" :class="['message', msg.role]">
-                    <div class="bubble">{{ msg.content }}</div>
+
+<div id="app" v-cloak>
+    <div class="app-wrapper">
+        <header>
+            <h1>🌈 SafeBuddy</h1>
+            <p class="status">{{ statusText }}</p>
+        </header>
+
+        <section class="setup-panel" v-if="!isEngineReady">
+            <div class="card">
+                <h3>Select a Brain</h3>
+                <select v-model="selectedModel" :disabled="isLoading">
+                    <option v-for="model in availableModels" :key="model.id" :value="model.id">
+                        {{ model.name }}
+                    </option>
+                </select>
+                <button @click="initAI" :disabled="isLoading" class="primary-btn">
+                    {{ isLoading ? 'Setting up...' : 'Start Chatting' }}
+                </button>
+                <p class="help-text">First load takes 1-2 minutes to download the brain.</p>
+            </div>
+        </section>
+
+        <main class="chat-display" ref="chatWindow">
+            <div v-for="(msg, i) in chatHistory" :key="i" :class="['msg-wrapper', msg.role]">
+                <div class="bubble">
+                    <small>{{ msg.role === 'user' ? 'Me' : 'Buddy' }}</small>
+                    <p>{{ msg.content }}</p>
                 </div>
-                <div v-if="isTyping" class="message assistant"><div class="bubble">...</div></div>
-            </main>
-            <footer>
-                <div class="input-wrapper">
-                    <input v-model="userInput" @keyup.enter="handleSend" placeholder="Type here..." :disabled="!isEngineReady">
-                    <button @click="handleSend" :disabled="!isEngineReady">Send</button>
-                </div>
-            </footer>
-        </div>
+            </div>
+            <div v-if="isTyping" class="msg-wrapper assistant">
+                <div class="bubble typing">Buddy is thinking...</div>
+            </div>
+        </main>
+
+        <footer class="input-bar">
+            <input 
+                v-model="userInput" 
+                @keyup="handleKeyup"
+                placeholder="Ask me anything safe..."
+                :disabled="!isEngineReady || isTyping"
+            >
+            <button @click="sendMessage" :disabled="!isEngineReady || isTyping">Send</button>
+        </footer>
     </div>
-    <script type="module" src="app.js"></script>
+</div>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>
