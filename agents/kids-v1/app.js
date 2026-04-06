@@ -15,22 +15,24 @@ createApp({
 
         onMounted(async () => {
             try {
-                // Replace the old modelId with this one:
+                // This specific version (q4f32) avoids the ShaderF16 error!
                 const modelId = "SmolLM2-135M-Instruct-q4f32_1-MLC";
                 
                 engine = await webllm.CreateMLCEngine(modelId, {
                     initProgressCallback: (p) => {
-                        statusText.value = `Loading: ${Math.round(p.progress * 100)}% (Almost ready!)`;
-                    },
-                    // This configuration helps with older GPU/WASM compatibility
-                    appConfig: { model_list: webllm.prebuiltAppConfig.model_list }
+                        statusText.value = `Loading Buddy: ${Math.round(p.progress * 100)}%`;
+                    }
                 });
-
-                statusText.value = "✅ I'm ready to talk!";
+        
+                statusText.value = "✅ Ready to play!";
                 isEngineReady.value = true;
             } catch (err) {
-                statusText.value = "❌ Oh no! Your computer's 'Brain Power' (WebGPU) is turned off.";
-                console.error("Initialization failed:", err);
+                if (err.message.includes("shader-f16")) {
+                    statusText.value = "❌ This browser doesn't support f16 math. Try updating Chrome.";
+                } else {
+                    statusText.value = "❌ Connection Error. Please refresh.";
+                }
+                console.error("AI Error:", err);
             }
         });
 
