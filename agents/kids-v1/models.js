@@ -1,38 +1,27 @@
-// models.js
+// models.js - The AI Model Database
 export const modelList = [
     {
         id: "SmolLM2-135M-Instruct-q4f32_1-MLC",
         name: "SmolLM2 135M (Most Compatible)",
-        vram: "580MB",
         requiresF16: false,
-        category: "Basic"
+        description: "Small, very fast, works on almost all computers."
     },
     {
         id: "Llama-3.2-1B-Instruct-q4f32_1-MLC",
-        name: "Llama 3.2 1B (Smart - f32)",
-        vram: "1.1GB",
+        name: "Llama 3.2 1B (Smartest f32)",
         requiresF16: false,
-        category: "Advanced"
+        description: "Higher quality answers, requires more RAM."
     },
     {
         id: "Qwen2.5-0.5B-Instruct-q4f32_1-MLC",
-        name: "Qwen 2.5 0.5B (Fast - f32)",
-        vram: "1.0GB",
+        name: "Qwen 2.5 0.5B (f32)",
         requiresF16: false,
-        category: "Basic"
+        description: "Balanced speed and intelligence."
     },
     {
         id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",
-        name: "Llama 3.2 1B (High Performance)",
-        vram: "880MB",
+        name: "Llama 3.2 1B (Turbo - f16)",
         requiresF16: true,
-        category: "Advanced"
-    },
-    {
-        id: "SmolLM2-135M-Instruct-q4f16_1-MLC",
-        name: "SmolLM2 135M (f16 optimized)",
-        vram: "380MB",
-        requiresF16: true,
-        category: "Basic"
+        description: "Requires modern GPU with shader-f16 support."
     }
 ];
