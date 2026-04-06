@@ -18,7 +18,7 @@ createApp({
         onMounted(async () => {
             try {
                 // Use a very tiny model to avoid GPU memory errors
-                const modelId = "SmolLM2-135M-Instruct-q4f16_1-MLC";
+                const modelId = "SmolLM2-360M-Instruct-q4f16_1-MLC";
                 
                 engine = await webllm.CreateMLCEngine(modelId, {
                     initProgressCallback: (p) => {
