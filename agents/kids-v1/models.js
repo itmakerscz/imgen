@@ -1,8 +1,8 @@
 // models.js - The AI Model Database
 export const modelList = [
     {
-        id: "SmolLM2-135M-Instruct-q4f32_1-MLC",
-        name: "SmolLM2 135M (Fastest)",
+        id: "SmolLM2-360M-Instruct-q4f32_1-MLC",
+        name: "SmolLM2 360M (Fastest)",
         requiresF16: false,
         description: "Small, very fast, works on almost all computers."
     },
